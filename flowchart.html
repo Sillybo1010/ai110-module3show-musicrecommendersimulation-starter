@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Recommender – Data Flow</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    body {
+      background: #0f0f0f;
+      color: #e0e0e0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 1.5rem; letter-spacing: 0.05em; }
+    .mermaid { background: #1a1a1a; border-radius: 12px; padding: 2rem; max-width: 900px; width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Music Recommender — Data Flow</h1>
+
+  <div class="mermaid">
+flowchart TD
+    A(["📋 User Preferences\nfavorite_genre · favorite_mood\ntarget_energy · target_tempo\ntarget_valence · target_danceability\ntarget_acousticness · likes_acoustic"])
+    B(["🎵 songs.csv\n20 songs"])
+
+    B --> C["load_songs()\nparse CSV rows into typed dicts"]
+    C --> D
+    A --> D
+
+    D["recommend_songs()\ninitialise scored = []"]
+    D --> E
+
+    E{"More songs\nto score?"}
+
+    E -- "yes — pick next song" --> F["score_song(user_prefs, song)"]
+
+    F --> G["➕ 2.00  Genre match\nexact string compare"]
+    F --> H["➕ 1.00  Mood match\nexact string compare"]
+    F --> I["➕ 0–1.50  Energy sim\n1.5 × (1 − |song − target|)"]
+    F --> J["➕ 0–1.00  Acousticness sim\n1.0 × (1 − |song − target|)"]
+    F --> K["➕ 0–1.00  Tempo sim\n1.0 × max(0, 1 − Δbpm÷100)"]
+    F --> L["➕ 0–0.75  Valence sim\n0.75 × (1 − |song − target|)"]
+    F --> M["➕ 0–0.50  Danceability sim\n0.50 × (1 − |song − target|)"]
+    F --> N{"likes_acoustic AND\nacousticness > 0.6?"}
+    N -- yes --> O["➕ 0.50  Acoustic bonus"]
+    N -- no  --> P
+
+    G & H & I & J & K & L & M & O --> P["sum → total score\nbuild reason list"]
+
+    P --> Q["append (song, score, explanation)\nto scored list"]
+    Q --> E
+
+    E -- "no more songs" --> R["sort scored list\nby score descending"]
+    R --> S["slice top K"]
+    S --> T(["🏆 Output\nTop-K: (song, score, explanation)"])
+
+    style A fill:#1e3a5f,stroke:#4a90d9,color:#cde
+    style B fill:#1e3a5f,stroke:#4a90d9,color:#cde
+    style T fill:#1a4a1a,stroke:#4caf50,color:#cec
+    style E fill:#3a2a00,stroke:#f0a000,color:#ffe
+    style N fill:#3a2a00,stroke:#f0a000,color:#ffe
+    style G fill:#2a1a2a,stroke:#a06,color:#dcd
+    style H fill:#2a1a2a,stroke:#a06,color:#dcd
+    style I fill:#2a1a2a,stroke:#a06,color:#dcd
+    style J fill:#2a1a2a,stroke:#a06,color:#dcd
+    style K fill:#2a1a2a,stroke:#a06,color:#dcd
+    style L fill:#2a1a2a,stroke:#a06,color:#dcd
+    style M fill:#2a1a2a,stroke:#a06,color:#dcd
+    style O fill:#2a1a2a,stroke:#a06,color:#dcd
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: "dark" });
+  </script>
+</body>
+</html>

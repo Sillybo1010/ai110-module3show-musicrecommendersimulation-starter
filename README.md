@@ -17,17 +17,63 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+Real-world music recommenders like Spotify or YouTube Music work by building a numerical model of both the song and the listener — capturing audio features (tempo, energy, mood) alongside behavioral signals (play history, skips, saves) — then ranking candidates by how closely they match a user's learned profile. They rely on massive datasets and often blend collaborative filtering (what similar users liked) with content-based matching (how the song's features compare to past favorites). This simulation focuses on the **content-based** side of that pipeline: it prioritizes explicit, interpretable features — genre, mood, energy, and acoustic character — and scores each song by how well it matches a user's stated preferences. The goal is transparency: every recommendation can be explained by pointing directly to the feature weights that drove the score.
 
-Some prompts to answer:
+### Song features
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+Each `Song` object tracks the following attributes:
 
-You can include a simple diagram or bullet list if helpful.
+- `id` — unique identifier for the track
+- `title` — song title
+- `artist` — performing artist
+- `genre` — musical genre (e.g., pop, hip-hop, jazz)
+- `mood` — emotional tone (e.g., happy, melancholic, energetic)
+- `energy` — float 0–1 representing intensity and activity level
+- `tempo_bpm` — beats per minute
+- `valence` — float 0–1 representing musical positivity
+- `danceability` — float 0–1 representing how suitable the track is for dancing
+- `acousticness` — float 0–1 representing how acoustic (vs. electronic) the track sounds
+
+### UserProfile features
+
+Each `UserProfile` object stores the following preferences:
+
+- `favorite_genre` — the genre the user most wants to hear
+- `favorite_mood` — the mood the user is currently seeking
+- `target_energy` — the energy level the user prefers (float 0–1)
+- `target_tempo` — beats per minute the user is targeting (float)
+- `target_valence` — emotional positivity the user is targeting (float 0–1)
+- `target_danceability` — danceability level the user prefers (float 0–1)
+- `target_acousticness` — acoustic warmth the user prefers (float 0–1)
+- `likes_acoustic` — boolean flag indicating whether the user prefers acoustic tracks
+
+---
+
+### Algorithm Recipe
+
+Every song in the catalog is scored against the user profile using the following rules. Scores are summed, and the top-K songs are returned as recommendations.
+
+| Rule | Points | How it is calculated |
+|---|---|---|
+| Genre match | +2.00 | Exact string match between `song.genre` and `favorite_genre` |
+| Mood match | +1.00 | Exact string match between `song.mood` and `favorite_mood` |
+| Energy similarity | 0 – 1.50 | `1.5 × (1 − |song.energy − target_energy|)` |
+| Acousticness similarity | 0 – 1.00 | `1.0 × (1 − |song.acousticness − target_acousticness|)` |
+| Tempo similarity | 0 – 1.00 | `1.0 × max(0, 1 − |song.tempo_bpm − target_tempo| ÷ 100)` |
+| Valence similarity | 0 – 0.75 | `0.75 × (1 − |song.valence − target_valence|)` |
+| Danceability similarity | 0 – 0.50 | `0.50 × (1 − |song.danceability − target_danceability|)` |
+| Acoustic bonus | +0.50 | Applied when `likes_acoustic` is `True` and `song.acousticness > 0.6` |
+| **Max possible score** | **8.25** | |
+
+The weights reflect priority: genre is the strongest signal, energy separates feel more than any other numeric feature, and danceability is a tiebreaker. Every recommendation includes a plain-language explanation listing which rules fired and the similarity values.
+
+### Potential Biases
+
+- **Genre over-prioritization.** With +2.0 points for a genre match, a mediocre song in the right genre can outscore an excellent song in a related genre. A lofi fan will never see an ambient track ranked first, even though ambient and lofi feel nearly identical.
+- **Mood all-or-nothing.** Mood is an exact match — "focused" earns 1.0 point and "chill" earns 0. In practice, focused and chill are close neighbors, but the system treats them as completely different, suppressing songs a real listener would enjoy.
+- **Acoustic bonus skews warm.** Users who set `likes_acoustic = True` get a permanent +0.50 on every song with `acousticness > 0.6`, which can push acoustic tracks above better numerical matches. The bonus is not scaled by how acoustic the song is.
+- **Catalog size amplifies gaps.** With only 20 songs, a user whose favorite genre appears once (e.g., reggae) gets almost no genre-match competition, so numeric features decide everything. A user whose genre appears five times is more sensitive to the +2.0 weight.
+- **No novelty or diversity.** The system always returns the closest match. If the top five songs are all lofi tracks, nothing in the ranking pushes for variety.
 
 ---
 
