@@ -11,7 +11,7 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+VibeFinder 1.0 scores every song in a 20-song catalog against a user's stated preferences — genre, mood, energy, tempo, valence, danceability, and acousticness — using a weighted point system, then returns the top-K matches with a plain-language explanation of what drove each score. It was tested against six distinct user profiles (three standard, three adversarial) and one weight-shift experiment to evaluate bias and sensitivity.
 
 ---
 
@@ -112,40 +112,189 @@ You can add more tests in `tests/test_recommender.py`.
 
 ---
 
+## Terminal Output — All Profiles
+
+Six profiles were run with `python -m src.main`. Output below is the exact terminal result.
+
+### Profile 1 — High-Energy Pop
+```
+#1  Sunrise City by Neon Echo          Score: 7.47 / 8.25
+    Why: genre match (pop, +2.0), mood match (happy, +1.0), energy 0.82 (sim 0.94),
+         acousticness 0.18 (sim 0.92), tempo 118 bpm (sim 0.93)
+
+#2  Gym Hero by Max Pulse               Score: 6.48 / 8.25
+    Why: genre match (pop, +2.0), energy 0.93 (sim 0.95), acousticness 0.05 (sim 0.95),
+         tempo 132 bpm (sim 0.93)
+
+#3  Rooftop Lights by Indigo Parade     Score: 5.27 / 8.25
+    Why: mood match (happy, +1.0), energy 0.76 (sim 0.88), acousticness 0.35 (sim 0.75),
+         tempo 124 bpm (sim 0.99)
+
+#4  Salsa Fuego by Ritmo Libre          Score: 4.47 / 8.25
+    Why: energy 0.89 (sim 0.99), acousticness 0.09 (sim 0.99), tempo 142 bpm (sim 0.83)
+
+#5  Drop Zone by Pulse Circuit          Score: 4.39 / 8.25
+    Why: energy 0.95 (sim 0.93), acousticness 0.03 (sim 0.93), tempo 138 bpm (sim 0.87)
+```
+
+### Profile 2 — Chill Lofi Study
+```
+#1  Focus Flow by LoRoom                Score: 8.09 / 8.25
+    Why: genre match (lofi, +2.0), mood match (focused, +1.0), energy 0.40 (sim 0.95),
+         acousticness 0.78 (sim 0.97), tempo 80 bpm (sim 0.98), acoustic bonus (+0.5)
+
+#2  Midnight Coding by LoRoom           Score: 7.06 / 8.25
+    Why: genre match (lofi, +2.0), energy 0.42 (sim 0.97), acousticness 0.71 (sim 0.96),
+         tempo 78 bpm (sim 0.96), acoustic bonus (+0.5)
+
+#3  Library Rain by Paper Lanterns      Score: 6.88 / 8.25
+    Why: genre match (lofi, +2.0), energy 0.35 (sim 0.90), acousticness 0.86 (sim 0.89),
+         tempo 72 bpm (sim 0.90), acoustic bonus (+0.5)
+
+#4  Coffee Shop Stories by Slow Stereo  Score: 4.82 / 8.25
+    Why: energy 0.37 (sim 0.92), acousticness 0.89 (sim 0.86), tempo 90 bpm (sim 0.92),
+         acoustic bonus (+0.5)
+
+#5  Dirt Road Anthem by Hayfield Jones  Score: 4.60 / 8.25
+    Why: energy 0.61 (sim 0.84), acousticness 0.72 (sim 0.97), tempo 96 bpm (sim 0.86),
+         acoustic bonus (+0.5)
+```
+
+### Profile 3 — Deep Intense Rock
+```
+#1  Storm Runner by Voltline            Score: 7.67 / 8.25
+    Why: genre match (rock, +2.0), mood match (intense, +1.0), energy 0.91 (sim 0.99),
+         acousticness 0.10 (sim 0.98), tempo 152 bpm (sim 0.98)
+
+#2  Gym Hero by Max Pulse               Score: 5.17 / 8.25
+    Why: mood match (intense, +1.0), energy 0.93 (sim 0.99), acousticness 0.05 (sim 0.97),
+         tempo 132 bpm (sim 0.82)
+
+#3  Iron Collapse by Ashfall            Score: 4.20 / 8.25
+    Why: energy 0.97 (sim 0.95), acousticness 0.04 (sim 0.96), tempo 168 bpm (sim 0.82)
+
+#4  Salsa Fuego by Ritmo Libre          Score: 4.13 / 8.25
+    Why: energy 0.89 (sim 0.97), acousticness 0.09 (sim 0.99), tempo 142 bpm (sim 0.92)
+
+#5  Drop Zone by Pulse Circuit          Score: 4.08 / 8.25
+    Why: energy 0.95 (sim 0.97), acousticness 0.03 (sim 0.95), tempo 138 bpm (sim 0.88)
+```
+
+### Profile 4 — Adversarial: Conflicting Ambient + High Energy
+```
+#1  Spacewalk Thoughts by Orbit Bloom   Score: 4.84 / 8.25
+    Why: genre match (ambient, +2.0), energy 0.28 (sim 0.33), acousticness 0.92 (sim 0.98),
+         tempo 60 bpm (sim 0.20), acoustic bonus (+0.5)
+
+#2  Rainy Day Blues by Delta Mae        Score: 4.29 / 8.25
+    Why: mood match (sad, +1.0), energy 0.34 (sim 0.39), acousticness 0.82 (sim 0.92),
+         tempo 70 bpm (sim 0.30), acoustic bonus (+0.5)
+
+#3  Dirt Road Anthem by Hayfield Jones  Score: 3.53 / 8.25
+    Why: energy 0.61 (sim 0.66), acousticness 0.72 (sim 0.82), tempo 96 bpm (sim 0.56),
+         acoustic bonus (+0.5)
+
+#4  Storm Runner by Voltline            Score: 3.44 / 8.25
+    Why: energy 0.91 (sim 0.96), acousticness 0.10 (sim 0.20), tempo 152 bpm (sim 0.88)
+
+#5  Gym Hero by Max Pulse               Score: 3.35 / 8.25
+    Why: energy 0.93 (sim 0.98), acousticness 0.05 (sim 0.15), tempo 132 bpm (sim 0.92)
+```
+
+> **Surprise:** Spacewalk Thoughts won despite an energy score of only 0.28 vs. the
+> target of 0.95. The +2.0 genre bonus plus the +0.5 acoustic bonus (1.90 points of
+> "free" categorical credit) outweighed a 0.67-point energy gap (penalty ≈ 0.50 pts).
+> The system had no way to flag the contradiction.
+
+### Profile 5 — Adversarial: Ghost Genre (K-Pop not in catalog)
+```
+#1  Sunrise City by Neon Echo           Score: 5.59 / 8.25
+    Why: mood match (happy, +1.0), energy 0.82 (sim 0.98), acousticness 0.18 (sim 0.97),
+         tempo 118 bpm (sim 0.98)
+
+#2  Rooftop Lights by Indigo Parade     Score: 5.37 / 8.25
+    Why: mood match (happy, +1.0), energy 0.76 (sim 0.96), acousticness 0.35 (sim 0.80),
+         tempo 124 bpm (sim 0.96)
+
+#3  Dirt Road Anthem by Hayfield Jones  Score: 4.52 / 8.25
+    Why: mood match (happy, +1.0), energy 0.61 (sim 0.81), acousticness 0.72 (sim 0.43),
+         tempo 96 bpm (sim 0.76)
+
+#4  Salsa Fuego by Ritmo Libre          Score: 4.29 / 8.25
+    Why: energy 0.89 (sim 0.91), acousticness 0.09 (sim 0.94), tempo 142 bpm (sim 0.78)
+
+#5  Gym Hero by Max Pulse               Score: 4.25 / 8.25
+    Why: energy 0.93 (sim 0.87), acousticness 0.05 (sim 0.90), tempo 132 bpm (sim 0.88)
+```
+
+> No song earned the +2.0 genre bonus. The system fell back silently to numeric and
+> mood matching. Max scores dropped to ~5.6 — a clear signal that genre is missing.
+
+### Profile 6 — Adversarial: Max Mismatch Classical Serenity
+```
+#1  Moonlit Sonata by Clara Voss        Score: 8.11 / 8.25
+    Why: genre match (classical, +2.0), mood match (peaceful, +1.0), energy 0.22 (sim 0.96),
+         acousticness 0.97 (sim 0.99), tempo 58 bpm (sim 0.97), acoustic bonus (+0.5)
+
+#2  Spacewalk Thoughts by Orbit Bloom   Score: 4.88 / 8.25
+#3  Faded Photographs by Birch & Wire   Score: 4.54 / 8.25
+#4  Library Rain by Paper Lanterns      Score: 4.48 / 8.25
+#5  Coffee Shop Stories by Slow Stereo  Score: 4.31 / 8.25
+```
+
+---
+
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+### Weight Shift: Genre 2.0 → 1.0 / Energy 1.5 → 3.0 (High-Energy Pop profile)
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+**Hypothesis:** Halving genre weight and doubling energy weight should pull
+non-pop high-energy songs (Salsa Fuego, Drop Zone) higher in the list.
+
+```
+#1  Sunrise City by Neon Echo    Score: 7.88   (was 7.47)
+#2  Gym Hero by Max Pulse        Score: 6.91   (was 6.48)
+#3  Rooftop Lights by Indigo     Score: 6.59   (was 5.27)  ← jumped
+#4  Salsa Fuego by Ritmo Libre   Score: 5.96   (was 4.47)  ← jumped
+#5  Drop Zone by Pulse Circuit   Score: 5.78   (was 4.39)  ← jumped
+```
+
+**Finding:** The top-2 order did not change because Sunrise City and Gym Hero
+both have high energy *and* a genre match — they benefit from both weights. But
+#3–5 all rose significantly because the reduced genre penalty now lets high-energy
+songs from other genres compete on equal footing. The gap between #2 (pop, 6.91)
+and #3 (non-pop, 6.59) shrank from 1.21 to 0.32 — energy weight now almost
+compensates for the missing genre bonus.
+
+**Conclusion:** The original genre weight of 2.0 is too dominant for users whose
+primary interest is a *feel* (high energy) rather than a specific genre label.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
+- **Genre dominance.** The +2.0 genre bonus is the single largest score component. A song with a genre match and mediocre numeric fit outscores a song with no genre match and near-perfect numeric fit. This is the primary source of filter-bubble behavior.
+- **No partial mood credit.** "Focused" and "chill" are treated as completely different. A song will score 0 mood points even if its mood is a natural neighbor.
+- **Contradictory profiles produce silent failures.** The system cannot detect when preferences conflict (e.g., high-energy + highly-acoustic) and returns a best-effort answer without warning.
+- **20-song catalog.** Genre-unique tracks (classical, metal, reggae each appear once) face no in-genre competition. Results are highly sensitive to catalog size.
+- **No diversity enforcement.** The top-5 can be 5 songs from the same genre if that genre has enough entries and the user's profile matches.
 
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+See [model_card.md](model_card.md) for deeper analysis.
 
 ---
 
 ## Reflection
 
-Read and complete `model_card.md`:
-
 [**Model Card**](model_card.md)
 
-Write 1 to 2 paragraphs here about what you learned:
+**What I learned about recommenders turning data into predictions:**
+The most important insight is that a recommender is only as good as its feature weights, and those weights encode assumptions about what matters most to users. Choosing +2.0 for genre and +1.5 for energy is a hypothesis about human taste — not a fact. When I ran the weight-shift experiment and halved the genre bonus, the rankings changed meaningfully, which means the original system was really answering the question "who matches this genre?" rather than "who sounds like what this user wants?" A more honest system would learn those weights from actual listening behavior rather than guessing.
 
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+**Profile comparison — EDM vs. Acoustic user:**
+Comparing the High-Energy Pop profile (energy 0.88, acousticness 0.10) and the Max Mismatch Classical Serenity profile (energy 0.18, acousticness 0.98) shows the system behaving exactly as designed: the two lists share zero songs. The EDM-adjacent profile surfaces Salsa Fuego and Drop Zone; the classical profile surfaces Moonlit Sonata and Spacewalk Thoughts. The energy and acousticness features are doing real work — they pull the lists in completely opposite directions. This makes sense: a person studying quietly and a person running a 5K want fundamentally different audio environments, and those features capture that difference cleanly.
+
+**Where bias or unfairness could show up:**
+The conflicting-preferences edge case is the clearest example. A user who asks for "ambient + high energy" is probably imagining a niche style (cinematic, lo-fi electronic) that simply does not exist in this catalog. The system returned Spacewalk Thoughts as #1 — a genuinely quiet ambient track — because the genre label matched and the categorical bonus overrode the failed numeric match. The user would get results and never know the system had effectively ignored half their request. In a real product, that silent failure erodes trust over time.
 
 
 ---
