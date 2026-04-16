@@ -17,6 +17,11 @@ class Song:
     valence: float
     danceability: float
     acousticness: float
+    popularity:        int   = 50
+    release_decade:    int   = 2020
+    instrumentalness:  float = 0.0
+    speechiness:       float = 0.05
+    liveness:          float = 0.10
 
 @dataclass
 class UserProfile:
@@ -87,6 +92,11 @@ def load_songs(csv_path: str) -> List[Dict]:
                 "valence":       float(row["valence"]),
                 "danceability":  float(row["danceability"]),
                 "acousticness":  float(row["acousticness"]),
+                "popularity":        int(row["popularity"]),
+                "release_decade":    int(row["release_decade"]),
+                "instrumentalness":  float(row["instrumentalness"]),
+                "speechiness":       float(row["speechiness"]),
+                "liveness":          float(row["liveness"]),
             })
     print(f"Loaded {len(songs)} songs.")
     return songs
@@ -100,6 +110,16 @@ _DEFAULT_WEIGHTS: Dict[str, float] = {
     "valence":        0.75,
     "danceability":   0.50,
     "acoustic_bonus": 0.50,
+}
+
+# ── Stretch: Ranking Modes ────────────────────────────────────────────────────
+# Each mode is a partial weight override merged on top of _DEFAULT_WEIGHTS.
+# "balanced" uses the defaults unchanged.
+RANKING_MODES: Dict[str, Dict[str, float]] = {
+    "balanced": {},                              # no overrides — pure defaults
+    "genre-first":  {"genre": 4.00, "mood": 0.50, "energy": 0.75},
+    "mood-first":   {"mood":  3.00, "genre": 0.75, "energy": 0.75},
+    "energy-first": {"energy": 4.00, "genre": 0.75, "acousticness": 0.50},
 }
 
 
@@ -145,6 +165,21 @@ def score_song(
     dance_sim = 1.0 - abs(song["danceability"] - user_prefs.get("target_danceability", 0.5))
     score += w["danceability"] * dance_sim
 
+    # --- Instrumentalness similarity (weight: 0.75) ---
+    if "target_instrumentalness" in user_prefs:
+        instr_sim = 1.0 - abs(song["instrumentalness"] - user_prefs["target_instrumentalness"])
+        score += 0.75 * instr_sim
+
+    # --- Popularity similarity (weight: 0.50) ---
+    if "target_popularity" in user_prefs:
+        pop_sim = 1.0 - abs(song["popularity"] - user_prefs["target_popularity"]) / 100.0
+        score += 0.50 * pop_sim
+
+    # --- Decade similarity (weight: 0.50) ---
+    if "target_decade" in user_prefs:
+        decade_sim = max(0.0, 1.0 - abs(song["release_decade"] - user_prefs["target_decade"]) / 50.0)
+        score += 0.50 * decade_sim
+
     # --- Acoustic bonus ---
     if user_prefs.get("likes_acoustic") and song["acousticness"] > 0.6:
         score += w["acoustic_bonus"]
@@ -153,17 +188,61 @@ def score_song(
     return score, reasons
 
 
+def apply_artist_penalty(
+    scored: List[Tuple[Dict, float, List[str]]],
+    penalty: float = 0.20,
+) -> List[Tuple[Dict, float, List[str]]]:
+    """Reduce scores of duplicate artists to prevent filter bubbles.
+
+    The first song by each artist keeps its full score.  Every subsequent song
+    by the same artist has its score multiplied by (1 - penalty).  This pushes
+    variety into the top-K without removing any song from the catalog.
+    """
+    seen_artists: set = set()
+    result = []
+    for song, score, reasons in scored:
+        artist = song["artist"]
+        if artist in seen_artists:
+            score = score * (1.0 - penalty)
+            reasons = reasons + [f"artist repeat penalty (×{1-penalty:.2f})"]
+        else:
+            seen_artists.add(artist)
+        result.append((song, score, reasons))
+    return result
+
+
 def recommend_songs(
     user_prefs: Dict,
     songs: List[Dict],
     k: int = 5,
     weights: Optional[Dict[str, float]] = None,
+    mode: str = "balanced",
+    diversity_penalty: float = 0.20,
 ) -> List[Tuple[Dict, float, str]]:
-    """Score every song, sort highest-to-lowest, and return the top-k as (song, score, explanation)."""
+    """Score every song, apply diversity penalty, sort, and return top-k.
+
+    Args:
+        user_prefs:        User preference dict.
+        songs:             Full catalog as a list of dicts.
+        k:                 Number of results to return.
+        weights:           Optional per-key weight overrides (highest priority).
+        mode:              One of RANKING_MODES keys — preset weight profile.
+        diversity_penalty: Fraction (0–1) to discount repeated-artist songs.
+                           Set to 0.0 to disable.
+    """
+    # Merge: defaults <- mode overrides <- caller-supplied weights
+    merged_weights = {**_DEFAULT_WEIGHTS, **RANKING_MODES.get(mode, {}), **(weights or {})}
+
     scored = [
-        (song, *score_song(user_prefs, song, weights))
+        (song, *score_song(user_prefs, song, merged_weights))
         for song in songs
     ]
-    # sorted() returns a new list; .sort() would mutate songs in place
+    # Sort before penalty so we penalise the lower-ranked duplicate, not the best one
     scored = sorted(scored, key=lambda x: x[1], reverse=True)
+
+    if diversity_penalty > 0.0:
+        scored = apply_artist_penalty(scored, penalty=diversity_penalty)
+        # Re-sort after penalty adjustment
+        scored = sorted(scored, key=lambda x: x[1], reverse=True)
+
     return [(song, score, ", ".join(reasons)) for song, score, reasons in scored[:k]]

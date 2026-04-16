@@ -111,6 +111,14 @@ reggae) produce a top result that is essentially just "the only song we have." I
 real catalog of millions of songs this would not be a problem; here it controls the
 entire ranking.
 
+**Diversity / fairness fix: artist repeat penalty.**
+To reduce the filter-bubble effect, VibeFinder applies a 20% score discount to any
+song whose artist has already appeared in a higher-ranked position. This prevents one
+artist from occupying multiple top-5 slots. In the Chill Lofi Study demo, LoRoom (two
+songs in the catalog) would otherwise hold both #1 and #2; with the penalty, their
+second song drops to #3 and a different artist moves up. The discount factor is
+configurable per call and can be set to 0.0 to disable it entirely.
+
 ---
 
 ## 6. Evaluation Process
